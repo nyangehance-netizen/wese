@@ -1,24 +1,30 @@
 {
   "expo": {
-    "name": "Jaza",
-    "slug": "jaza",
+    "name": "Wese",
+    "slug": "wese",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
-    "scheme": "jaza",
+    "scheme": "wese",
+    "icon": "./assets/icon.png",
     "ios": {
-      "bundleIdentifier": "tz.co.jaza.app",
+      "bundleIdentifier": "tz.co.wese.app",
       "supportsTablet": false,
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Jaza uses your location so the fuel rider can find your vehicle, and so riders can share their position with clients during a delivery."
+        "NSLocationWhenInUseUsageDescription": "Wese uses your location so the fuel rider can find your vehicle, and so riders can share their position with clients during a delivery."
       }
     },
     "android": {
-      "package": "tz.co.jaza.app",
+      "package": "tz.co.wese.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0E5A50"
+      },
       "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"]
     },
     "plugins": [
-      ["expo-location", { "locationWhenInUsePermission": "Jaza uses your location so the fuel rider can find your vehicle." }],
+      ["expo-splash-screen", { "image": "./assets/splash-icon.png", "imageWidth": 180, "resizeMode": "contain", "backgroundColor": "#0E5A50" }],
+      ["expo-location", { "locationWhenInUsePermission": "Wese uses your location so the fuel rider can find your vehicle." }],
       "expo-secure-store",
       ["expo-build-properties", { "android": { "usesCleartextTraffic": true } }]
     ]

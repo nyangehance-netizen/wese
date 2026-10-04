@@ -1,11 +1,11 @@
-# Jaza — fuel delivered where you stopped
+# Wese — fuel delivered where you stopped
 
-Jaza lets a driver who has run out of fuel order petrol or diesel to their location. A nearby fuel station accepts the order, one of its riders collects the fuel and delivers it, and the client confirms delivery with a 4-digit code.
+Wese lets a driver who has run out of fuel order petrol or diesel to their location. A nearby fuel station accepts the order, one of its riders collects the fuel and delivers it, and the client confirms delivery with a 4-digit code.
 
 | Part | Who uses it | Folder | Tech |
 |---|---|---|---|
 | **Mobile app** | Clients ordering fuel, riders delivering it | `mobile/` | Expo (React Native) — one codebase for **iOS and Android** |
-| **Station dashboard** | Fuel station owners/staff, Jaza admin | `dashboard/` | Web app, served by the backend, works on phone or computer |
+| **Station dashboard** | Fuel station owners/staff, Wese admin | `dashboard/` | Web app, served by the backend, works on phone or computer |
 | **Backend API** | Everything above | `backend/` | Node.js 22+, built-in SQLite, no outside packages |
 
 ## How an order works
@@ -37,7 +37,7 @@ npm start
 
 Open **http://localhost:4000** for the station dashboard.
 
-Demo accounts (password `jaza1234` for all):
+Demo accounts (password `wese1234` for all):
 
 | Role | Phone |
 |---|---|
@@ -75,7 +75,7 @@ eas build -p ios --profile production       # App Store (needs an Apple Develope
 eas submit -p android   /   eas submit -p ios
 ```
 
-Change `bundleIdentifier` / `package` in `mobile/app.json` (`tz.co.jaza.app`) to your own before the first build.
+Change `bundleIdentifier` / `package` in `mobile/app.json` (`tz.co.wese.app`) to your own before the first build.
 
 ## 3. Payments
 
@@ -92,7 +92,7 @@ Nothing else in the app changes. Each station's Lipa numbers and accounts are st
 
 ## 4. Going live
 
-- **Hosting:** any server with Node 22 (a small VPS is enough to start). Put it behind HTTPS (e.g. Caddy or Nginx with Let's Encrypt). Back up `backend/data/jaza.db` daily.
+- **Hosting:** any server with Node 22 (a small VPS is enough to start). Put it behind HTTPS (e.g. Caddy or Nginx with Let's Encrypt). Back up `backend/data/wese.db` daily.
 - **Settings:** set `NODE_ENV=production`, a long random `JWT_SECRET`, and your admin phone/password in `.env`.
 - **Regulation:** check with **EWURA** what licences fuel delivery outside a station needs, especially by motorbike in jerrycans. Stations enter their EWURA licence number at sign-up and stay hidden from clients until an admin approves them. Set `PRICE_CAP_PETROL` / `PRICE_CAP_DIESEL` to block prices above the published cap.
 - **Growing later:** SQLite handles a city-level launch. Move to PostgreSQL when you run several servers. Add push notifications (Expo Notifications) and an in-app map when needed.

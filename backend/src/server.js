@@ -9,13 +9,13 @@ import { phone } from './lib/http.js';
 if (config.admin.phone && config.admin.password) {
   const p = phone(config.admin.phone);
   if (!one('SELECT id FROM users WHERE phone = ?', p)) {
-    run("INSERT INTO users (name, phone, password_hash, role) VALUES ('Jaza Admin', ?, ?, 'admin')", p, hashPassword(config.admin.password));
+    run("INSERT INTO users (name, phone, password_hash, role) VALUES ('Wese Admin', ?, ?, 'admin')", p, hashPassword(config.admin.password));
     console.log('Admin account created for', p);
   }
 }
 
 createApp().listen(config.port, '0.0.0.0', () => {
-  console.log(`Jaza is running (payments: ${config.paymentProvider})`);
+  console.log(`Wese is running (payments: ${config.paymentProvider})`);
   console.log(`  Station dashboard on this computer:  http://localhost:${config.port}/`);
   const lan = Object.values(networkInterfaces()).flat().filter((i) => i && i.family === 'IPv4' && !i.internal);
   for (const i of lan) console.log(`  Server address for phones on the same Wi-Fi:  http://${i.address}:${config.port}`);

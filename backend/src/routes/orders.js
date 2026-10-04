@@ -128,7 +128,7 @@ export default (r) => {
         str(body.vehicle_type || 'Car', 'Vehicle type', { max: 30 }),
         contact, payMethod, isBank ? 'pending' : 'unpaid', isBank ? 'placed' : 'awaiting_payment',
         String(randomInt(1000, 10000)));
-      run('UPDATE orders SET code = ? WHERE id = ?', 'JZ-' + String(id).padStart(6, '0'), id);
+      run('UPDATE orders SET code = ? WHERE id = ?', 'WS-' + String(id).padStart(6, '0'), id);
       run('INSERT INTO order_events (order_id, status, actor_id, note) VALUES (?,?,?,?)', id, isBank ? 'placed' : 'awaiting_payment', user.id, 'Order created');
       return one('SELECT * FROM orders WHERE id = ?', id);
     });

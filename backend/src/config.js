@@ -20,7 +20,7 @@ const num = (v, d) => (v === undefined || v === '' ? d : Number(v));
 export const config = {
   root,
   port: num(env.PORT, 4000),
-  dbFile: env.DB_FILE || path.join(root, 'data', 'jaza.db'),
+  dbFile: env.DB_FILE || path.join(root, 'data', 'wese.db'),
   jwtSecret: env.JWT_SECRET || 'dev-only-secret-change-me',
   isProd: env.NODE_ENV === 'production',
   corsOrigin: env.CORS_ORIGIN || '*',

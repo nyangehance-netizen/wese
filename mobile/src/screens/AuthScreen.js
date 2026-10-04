@@ -3,6 +3,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, View, Pressable } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { api, setToken, getApiUrl, setApiUrl, checkServer } from '../api';
 import { Card } from '../components/ui';
+import { Brand } from '../components/Brand';
 
 function ServerSettings() {
   const c = useTheme();
@@ -16,7 +17,7 @@ function ServerSettings() {
     setBusy(true); setMsg('');
     const saved = await setApiUrl(url);
     setUrl(saved);
-    setMsg((await checkServer(saved)) ? '✓ Connected to the Jaza server.' : 'Saved, but the server did not answer. Check the address and that the server is running.');
+    setMsg((await checkServer(saved)) ? '✓ Connected to the Wese server.' : 'Saved, but the server did not answer. Check the address and that the server is running.');
     setBusy(false);
   }
 
@@ -63,9 +64,7 @@ export default function AuthScreen({ onSignedIn }) {
     <SafeAreaView style={{ flex: 1 }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={{ padding: 20, gap: 18, flexGrow: 1, justifyContent: 'center' }} keyboardShouldPersistTaps="handled">
-          <View style={{ width: 56, height: 56, borderRadius: 16, backgroundColor: c.brand, alignItems: 'center', justifyContent: 'center' }}>
-            <View style={{ width: 22, height: 28, borderRadius: 11, borderTopLeftRadius: 2, transform: [{ rotate: '45deg' }], backgroundColor: c.accent }} />
-          </View>
+          <Brand size="large" subtitle="Fuel delivered where you stopped" />
           <View style={{ gap: 6 }}>
             <H1>{reg ? 'Create your account' : 'Out of fuel? We bring it.'}</H1>
             <T muted>{reg ? 'Order fuel to wherever your vehicle stopped.' : 'Sign in to order fuel. Riders sign in here with the account their station made.'}</T>
@@ -76,7 +75,7 @@ export default function AuthScreen({ onSignedIn }) {
           <ErrorText>{err}</ErrorText>
           <Button title={reg ? 'Create account' : 'Sign in'} onPress={submit} loading={busy} />
           <Pressable onPress={() => { setMode(reg ? 'login' : 'register'); setErr(''); }} accessibilityRole="button">
-            <T style={{ color: c.brand, fontWeight: '700', textAlign: 'center' }}>{reg ? 'I already have an account' : 'New to Jaza? Create an account'}</T>
+            <T style={{ color: c.brand, fontWeight: '700', textAlign: 'center' }}>{reg ? 'I already have an account' : 'New to Wese? Create an account'}</T>
           </Pressable>
           <ServerSettings />
         </ScrollView>

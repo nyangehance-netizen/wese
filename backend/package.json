@@ -1,7 +1,7 @@
 {
-  "name": "jaza-backend",
+  "name": "wese-backend",
   "version": "1.0.0",
-  "description": "Jaza fuel delivery API: clients, fuel stations, riders, payments and live order updates",
+  "description": "Wese fuel delivery API: clients, fuel stations, riders, payments and live order updates",
   "type": "module",
   "private": true,
   "engines": { "node": ">=22.13" },

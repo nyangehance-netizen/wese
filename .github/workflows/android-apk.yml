@@ -1,11 +1,11 @@
-# Builds an installable Android APK of the Jaza app on every push to the jaza-app branch
-# (or by hand from the Actions tab), then publishes it as the "jaza-preview" release.
-# Download it on your phone from: https://github.com/<you>/<repo>/releases/tag/jaza-preview
+# Builds an installable Android APK of the Wese app on every push to main
+# (or by hand from the Actions tab), then publishes it as the "wese-preview" release.
+# Download it on your phone from: https://github.com/<you>/<repo>/releases/tag/wese-preview
 name: Android APK
 
 on:
   push:
-    branches: [jaza-app]
+    branches: [main]
     paths: ['mobile/**', '.github/workflows/android-apk.yml']
   workflow_dispatch:
 
@@ -13,7 +13,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: jaza-android-apk
+  group: wese-android-apk
   cancel-in-progress: true
 
 jobs:
@@ -61,23 +61,23 @@ jobs:
       - name: Name the APK
         run: |
           mkdir -p ../out
-          cp android/app/build/outputs/apk/release/app-release.apk ../out/jaza-preview.apk
+          cp android/app/build/outputs/apk/release/app-release.apk ../out/wese-preview.apk
           ls -lh ../out
 
       - name: Keep a copy on this run
         uses: actions/upload-artifact@v4
         with:
-          name: jaza-preview-apk
-          path: out/jaza-preview.apk
+          name: wese-preview-apk
+          path: out/wese-preview.apk
 
-      - name: Publish as the "jaza-preview" release
+      - name: Publish as the "wese-preview" release
         working-directory: .
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete jaza-preview --yes --cleanup-tag || true
-          gh release create jaza-preview out/jaza-preview.apk \
+          gh release delete wese-preview --yes --cleanup-tag || true
+          gh release create wese-preview out/wese-preview.apk \
             --target "$GITHUB_SHA" \
-            --title "Jaza preview build" \
-            --notes "Android preview built from ${GITHUB_SHA::7} on $(date -u '+%Y-%m-%d %H:%M UTC'). Download jaza-preview.apk on your phone and install it. Set the server address in the app under Server settings." \
+            --title "Wese preview build" \
+            --notes "Android preview built from ${GITHUB_SHA::7} on $(date -u '+%Y-%m-%d %H:%M UTC'). Download wese-preview.apk on your phone and install it. Set the server address in the app under Server settings." \
             --prerelease

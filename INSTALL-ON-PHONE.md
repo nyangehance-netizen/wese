@@ -1,4 +1,4 @@
-# Install Jaza on your phone for preview
+# Install Wese on your phone for preview
 
 You need two things: the **server** running somewhere your phone can reach, and the **app** on your phone.
 
@@ -7,7 +7,7 @@ You need two things: the **server** running somewhere your phone can reach, and 
 Install Node.js 22 or newer from nodejs.org, then:
 
 ```bash
-cd jaza/backend
+cd wese/backend
 npm run seed      # first time only: demo stations, riders and accounts
 npm start
 ```
@@ -27,13 +27,13 @@ Keep this window open. Your phone must be on the **same Wi-Fi** as the computer.
 
 ## Step 2A — Android: get the APK from GitHub (easiest)
 
-This project includes a GitHub Actions workflow (`.github/workflows/android-apk.yml`). Every push to the `jaza-app` branch that changes the app builds a fresh APK on GitHub's servers (about 15–25 minutes) and publishes it as the **jaza-preview** release.
+This project includes a GitHub Actions workflow (`.github/workflows/android-apk.yml`). Every push to `main` that changes the app builds a fresh APK on GitHub's servers (about 15–25 minutes) and publishes it as the **wese-preview** release.
 
-1. On your phone, open `https://github.com/nyangehance-netizen/jaza/releases/tag/jaza-preview` (sign in to GitHub on your phone first, since the repository is private).
-2. Tap **jaza-preview.apk** to download, then open it to install (allow "Install unknown apps" if asked).
-3. Open **Jaza** → **Server settings** → enter your server address → **Save and test**.
+1. On your phone, open `https://github.com/nyangehance-netizen/wese/releases/tag/wese-preview` (sign in to GitHub on your phone first, since the repository is private).
+2. Tap **wese-preview.apk** to download, then open it to install (allow "Install unknown apps" if asked).
+3. Open **Wese** → **Server settings** → enter your server address → **Save and test**.
 
-To rebuild without changing code: repository → **Actions** → **Android APK** → **Run workflow**, and pick the `jaza-app` branch.
+To rebuild without changing code: repository → **Actions** → **Android APK** → **Run workflow**.
 Optional: set a repository variable `API_URL` (Settings → Secrets and variables → Actions → Variables) to bake in a default server address.
 
 ## Step 2A (alternative) — Android APK with Expo's build service
@@ -41,7 +41,7 @@ Optional: set a repository variable `API_URL` (Settings → Secrets and variable
 Builds run on Expo's servers, so you don't need Android Studio. A free Expo account is enough.
 
 ```bash
-cd jaza/mobile
+cd wese/mobile
 npm run setup                 # installs everything with matching versions
 npm install -g eas-cli
 eas login                     # create a free account at expo.dev if you don't have one
@@ -52,8 +52,8 @@ The first time, answer **Yes** when it asks to create a project and generate a k
 
 1. Open the link on your Android phone and download the APK.
 2. Tap it to install. If Android asks, allow installing apps from your browser ("Install unknown apps").
-3. Open **Jaza** → tap **Server settings** at the bottom of the sign-in screen → enter the server address from Step 1 → **Save and test**.
-4. Sign in with a demo account (password `jaza1234`): client **0754 123 456**, rider **0754 000 011**.
+3. Open **Wese** → tap **Server settings** at the bottom of the sign-in screen → enter the server address from Step 1 → **Save and test**.
+4. Sign in with a demo account (password `wese1234`): client **0754 123 456**, rider **0754 000 011**.
 
 You can send the same APK link to other Android phones, e.g. one for a client and one for a rider.
 
@@ -62,7 +62,7 @@ You can send the same APK link to other Android phones, e.g. one for a client an
 Apple only allows installing a standalone app through TestFlight or the App Store, which needs an Apple Developer account (99 USD per year). For a free preview, use **Expo Go**:
 
 ```bash
-cd jaza/mobile
+cd wese/mobile
 npm run setup
 npx expo start
 ```
@@ -75,7 +75,7 @@ When you're ready to put it on iPhones properly: join the Apple Developer Progra
 
 ## Try the whole flow
 
-1. Computer: open `http://localhost:4000`, sign in as station **0713 000 001** / `jaza1234`.
+1. Computer: open `http://localhost:4000`, sign in as station **0713 000 001** / `wese1234`.
 2. Phone 1 (client): order 10 L of petrol from Mwenge Energies. Payment approves itself after 5 seconds (test mode).
 3. Computer: tap **Accept & send to riders**.
 4. Phone 2 (rider **0754 000 011**): go online → **Take this job** → follow the steps → enter the client's 4-digit code.

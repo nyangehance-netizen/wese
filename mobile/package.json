@@ -1,10 +1,10 @@
 {
-  "name": "jaza-mobile",
+  "name": "wese-mobile",
   "version": "1.0.0",
   "private": true,
   "main": "index.js",
   "scripts": {
-    "setup": "npm install && npx expo install react react-native expo-build-properties expo-location expo-secure-store expo-status-bar react-native-safe-area-context",
+    "setup": "npm install && npx expo install react react-native expo-build-properties expo-splash-screen expo-location expo-secure-store expo-status-bar react-native-safe-area-context",
     "start": "expo start",
     "build:apk": "eas build -p android --profile preview",
     "build:android": "eas build -p android --profile production",

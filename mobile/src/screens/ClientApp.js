@@ -6,6 +6,7 @@ import { useTheme } from '../theme';
 import OrderScreen from './OrderScreen';
 import TrackScreen from './TrackScreen';
 import HistoryScreen from './HistoryScreen';
+import { TopBar } from '../components/Brand';
 
 const ENDED = ['delivered', 'cancelled', 'rejected'];
 
@@ -31,6 +32,7 @@ export default function ClientApp({ user, onSignOut }) {
   const tabs = [['order', active ? 'Current order' : 'Order fuel'], ['history', 'My orders']];
   return (
     <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']}>
+      <TopBar subtitle={`Hi, ${user.name.split(' ')[0]}`} />
       <View style={{ flex: 1 }}>{body}</View>
       <SafeAreaView edges={['bottom']} style={{ flexDirection: 'row', borderTopWidth: 1, borderColor: c.line, backgroundColor: c.surface }}>
         {tabs.map(([k, label]) => (

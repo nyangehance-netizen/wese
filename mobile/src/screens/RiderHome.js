@@ -5,6 +5,7 @@ import * as Location from 'expo-location';
 import { api, tzs, phoneFmt } from '../api';
 import { useTheme } from '../theme';
 import { H1, H2, T, Card, Button, Field, Pill, Label, ErrorText, Row } from '../components/ui';
+import { TopBar } from '../components/Brand';
 
 const NEXT = {
   assigned: ['Collected the fuel', 'Head to the station and load the fuel.'],
@@ -57,19 +58,19 @@ export default function RiderHome({ user, onSignOut }) {
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
+      <TopBar subtitle="Rider" right={
+        <View style={{ alignItems: 'center', gap: 2 }}>
+          <Switch value={!!me.online} onValueChange={setOnline} disabled={busy || !!cur} trackColor={{ true: c.ok, false: c.line }} accessibilityLabel="Online" />
+          <T small bold style={{ color: me.online ? c.ok : c.muted }}>{me.online ? 'Online' : 'Offline'}</T>
+        </View>
+      } />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 32 }} refreshControl={<RefreshControl refreshing={false} onRefresh={load} />} keyboardShouldPersistTaps="handled">
-          <Row style={{ justifyContent: 'space-between' }}>
-            <View style={{ flexShrink: 1 }}>
-              <Label>Rider · {me.station.name}</Label>
-              <H1>{me.name}</H1>
-              <T muted small>{me.vehicle === 'tanker' ? 'Mini tanker' : 'Boda'} · {me.plate}</T>
-            </View>
-            <View style={{ alignItems: 'center', gap: 4 }}>
-              <Switch value={!!me.online} onValueChange={setOnline} disabled={busy || !!cur} trackColor={{ true: c.ok, false: c.line }} accessibilityLabel="Online" />
-              <T small bold style={{ color: me.online ? c.ok : c.muted }}>{me.online ? 'Online' : 'Offline'}</T>
-            </View>
-          </Row>
+          <View>
+            <Label>{me.station.name}</Label>
+            <H1>{me.name}</H1>
+            <T muted small>{me.vehicle === 'tanker' ? 'Mini tanker' : 'Boda'} · {me.plate}</T>
+          </View>
 
           <Row>
             <Card style={{ flex: 1 }}><Label>Trips today</Label><Text style={{ color: c.ink, fontSize: 22, fontWeight: '800' }}>{me.today.trips}</Text></Card>

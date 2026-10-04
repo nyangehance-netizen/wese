@@ -1,6 +1,6 @@
-// Jaza station dashboard: one-file app, talks to the Jaza API on the same server.
-const API = window.JAZA_API || '';
-const S = { token: localStorage.getItem('jaza_token') || '', user: null, station: null, orders: [], history: [], stats: null, tab: 'orders', admin: [], adminTab: 'pending', live: false };
+// Wese station dashboard: one-file app, talks to the Wese API on the same server.
+const API = window.WESE_API || '';
+const S = { token: localStorage.getItem('wese_token') || '', user: null, station: null, orders: [], history: [], stats: null, tab: 'orders', admin: [], adminTab: 'pending', live: false };
 
 const $ = (s) => document.querySelector(s);
 const app = $('#app');
@@ -32,7 +32,7 @@ async function act(fn, okMsg) {
 }
 
 function signOut() {
-  localStorage.removeItem('jaza_token');
+  localStorage.removeItem('wese_token');
   S.token = ''; S.user = null; S.station = null;
   S.es?.close(); S.es = null; S.live = false;
   render();
@@ -97,7 +97,7 @@ function render() {
   const u = S.user;
   if (!u) return (app.innerHTML = authView(S.authMode || 'login'));
   if (u.role === 'admin') return (app.innerHTML = adminView());
-  if (u.role !== 'station') return (app.innerHTML = `<div class="panel narrow"><h2>Use the Jaza mobile app</h2><p class="muted">This dashboard is for fuel stations. Clients and riders use the Jaza mobile app.</p><button class="btn" data-act="signOut">Sign out</button></div>`);
+  if (u.role !== 'station') return (app.innerHTML = `<div class="panel narrow"><h2>Use the Wese mobile app</h2><p class="muted">This dashboard is for fuel stations. Clients and riders use the Wese mobile app.</p><button class="btn" data-act="signOut">Sign out</button></div>`);
   if (!S.station) return (app.innerHTML = registerStationView());
   app.innerHTML = (S.station.status !== 'approved' ? pendingView() : '') + stationView();
 }
@@ -105,7 +105,7 @@ function render() {
 function authView(mode) {
   const reg = mode === 'register';
   return `<form class="panel narrow" id="authForm" data-mode="${mode}">
-    <div><h1>${reg ? 'Put your station on Jaza' : 'Sign in to your station'}</h1>
+    <div><h1>${reg ? 'Put your station on Wese' : 'Sign in to your station'}</h1>
     <p class="muted">${reg ? 'Create the owner account first. You add your station details next.' : 'Manage orders, prices, payments and riders.'}</p></div>
     <div class="fields">
       ${reg ? '<div class="field full"><label for="aName">Your full name</label><input id="aName" required autocomplete="name"></div>' : ''}
@@ -120,7 +120,7 @@ function authView(mode) {
 
 function registerStationView() {
   return `<form class="panel narrow" id="stationForm">
-    <div><h1>Your station</h1><p class="muted">Jaza checks your EWURA licence before your station goes live.</p></div>
+    <div><h1>Your station</h1><p class="muted">Wese checks your EWURA licence before your station goes live.</p></div>
     <div class="fields">
       <div class="field full"><label for="sName">Station name</label><input id="sName" required></div>
       <div class="field"><label for="sLic">EWURA licence number</label><input id="sLic" required></div>
@@ -141,7 +141,7 @@ function pendingView() {
   const s = S.station;
   return `<div class="panel" style="margin-bottom:16px;border-color:var(--${s.status === 'suspended' ? 'bad' : 'accent'})">
     <div class="panel-head"><h2>${s.status === 'suspended' ? 'Your station is suspended' : 'Waiting for approval'}</h2><span class="pill ${s.status === 'suspended' ? 'bad' : 'warn'}">${s.status}</span></div>
-    <p class="muted">${s.status === 'suspended' ? 'Clients cannot see your station. Contact Jaza support.' : `We are checking your EWURA licence (${esc(s.license_no)}). Clients will see your station once it is approved. Meanwhile, add your products, payment methods and riders so you are ready on day one.`}</p></div>`;
+    <p class="muted">${s.status === 'suspended' ? 'Clients cannot see your station. Contact Wese support.' : `We are checking your EWURA licence (${esc(s.license_no)}). Clients will see your station once it is approved. Meanwhile, add your products, payment methods and riders so you are ready on day one.`}</p></div>`;
 }
 
 const statusPill = (o) => ({
@@ -209,7 +209,7 @@ function stationView() {
       <div class="tw"><table><thead><tr><th>Name</th><th>Phone</th><th>Vehicle</th><th>Plate</th><th>Status</th><th>Account</th></tr></thead><tbody>
       ${s.riders.map((r) => `<tr><td><b>${esc(r.name)}</b></td><td class="num">${phoneFmt(r.phone)}</td><td>${VEH[r.vehicle]}</td><td class="num">${esc(r.plate)}</td>
         <td>${r.online ? '<span class="pill ok">Online</span>' : '<span class="pill">Offline</span>'}</td>
-        <td><span class="switch"><input type="checkbox" ${r.active ? 'checked' : ''} data-rider="${r.id}" aria-label="${esc(r.name)} account active"><span></span></span></td></tr>`).join('') || '<tr><td colspan="6" class="muted">Add riders so they can sign in to the Jaza app and take your deliveries.</td></tr>'}
+        <td><span class="switch"><input type="checkbox" ${r.active ? 'checked' : ''} data-rider="${r.id}" aria-label="${esc(r.name)} account active"><span></span></span></td></tr>`).join('') || '<tr><td colspan="6" class="muted">Add riders so they can sign in to the Wese app and take your deliveries.</td></tr>'}
       </tbody></table></div></div>
       <div class="stack">
       <div class="panel"><h2>Delivery options</h2>
@@ -321,7 +321,7 @@ document.addEventListener('submit', async (e) => {
     if (f.id === 'authForm') {
       const reg = f.dataset.mode === 'register';
       const r = await api('POST', `/api/auth/${reg ? 'register' : 'login'}`, { name: $('#aName')?.value, phone: $('#aPhone').value, password: $('#aPw').value, role: 'station' });
-      S.token = r.token; localStorage.setItem('jaza_token', r.token);
+      S.token = r.token; localStorage.setItem('wese_token', r.token);
       return boot();
     }
     if (f.id === 'stationForm') {

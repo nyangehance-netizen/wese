@@ -7,19 +7,19 @@ const DEFAULT_URL = (process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000')
 let apiUrl = null;
 export async function getApiUrl() {
   if (apiUrl) return apiUrl;
-  apiUrl = (await SecureStore.getItemAsync('jaza_api_url')) || DEFAULT_URL;
+  apiUrl = (await SecureStore.getItemAsync('wese_api_url')) || DEFAULT_URL;
   return apiUrl;
 }
 export async function setApiUrl(url) {
   let u = String(url || '').trim().replace(/\/$/, '');
   if (u && !/^https?:\/\//i.test(u)) u = 'http://' + u;
   apiUrl = u || DEFAULT_URL;
-  if (u) await SecureStore.setItemAsync('jaza_api_url', u);
-  else await SecureStore.deleteItemAsync('jaza_api_url');
+  if (u) await SecureStore.setItemAsync('wese_api_url', u);
+  else await SecureStore.deleteItemAsync('wese_api_url');
   return apiUrl;
 }
 
-/** Check a server address answers like a Jaza backend. */
+/** Check a server address answers like a Wese backend. */
 export async function checkServer(url) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 6000);
@@ -33,11 +33,11 @@ export async function checkServer(url) {
 }
 
 let token = null;
-export const getToken = async () => (token ??= await SecureStore.getItemAsync('jaza_token'));
+export const getToken = async () => (token ??= await SecureStore.getItemAsync('wese_token'));
 export async function setToken(t) {
   token = t;
-  if (t) await SecureStore.setItemAsync('jaza_token', t);
-  else await SecureStore.deleteItemAsync('jaza_token');
+  if (t) await SecureStore.setItemAsync('wese_token', t);
+  else await SecureStore.deleteItemAsync('wese_token');
 }
 
 let onUnauthorized = () => {};
@@ -53,7 +53,7 @@ export async function api(method, path, body) {
       body: body ? JSON.stringify(body) : undefined,
     });
   } catch {
-    throw new Error(`Cannot reach the Jaza server at ${base}. Check your internet connection or the server address.`);
+    throw new Error(`Cannot reach the Wese server at ${base}. Check your internet connection or the server address.`);
   }
   const data = await res.json().catch(() => ({}));
   if (res.status === 401 && t) { await setToken(null); onUnauthorized(); }

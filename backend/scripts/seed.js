@@ -4,7 +4,7 @@ import { one, run, tx } from '../src/db.js';
 import { hashPassword } from '../src/lib/auth.js';
 import { PAYMENT_METHODS } from '../src/config.js';
 
-const PW = 'jaza1234';
+const PW = 'wese1234';
 const user = (name, phone, role, stationId = null) => {
   const ex = one('SELECT id FROM users WHERE phone = ?', phone);
   if (ex) return ex.id;
@@ -27,7 +27,7 @@ const stations = [
 ];
 
 tx(() => {
-  user('Jaza Admin', '255700000000', 'admin');
+  user('Wese Admin', '255700000000', 'admin');
   user('Demo Client', '255754123456', 'client');
   for (const s of stations) {
     const ownerId = user(s.owner[0], s.owner[1], 'station');

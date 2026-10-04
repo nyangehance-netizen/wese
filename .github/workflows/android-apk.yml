@@ -79,5 +79,5 @@ jobs:
           gh release create wese-preview out/wese-preview.apk \
             --target "$GITHUB_SHA" \
             --title "Wese preview build" \
-            --notes "Android preview built from ${GITHUB_SHA::7} on $(date -u '+%Y-%m-%d %H:%M UTC'). Download wese-preview.apk on your phone and install it. Set the server address in the app under Server settings." \
+            --notes "Android preview built from ${GITHUB_SHA::7} on $(date -u '+%Y-%m-%d %H:%M UTC'). Download wese-preview.apk on your phone and install it. Tap Try the demo on the sign-in screen to explore with sample data, or set your server address under Server settings." \
             --prerelease

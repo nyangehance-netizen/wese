@@ -111,6 +111,7 @@ export default function RiderHome({ user, onSignOut }) {
                 <>
                   <Field label="Client's 4-digit code" value={otp} onChangeText={(t) => setOtp(t.replace(/\D/g, '').slice(0, 4))} keyboardType="number-pad" placeholder="••••" maxLength={4} />
                   <T muted small>Fill the tank first, then ask the client for the code.</T>
+                  {cur.demo_otp ? <T small bold style={{ color: c.warn }}>Demo: the client's code is {cur.demo_otp}</T> : null}
                   <Button title="Confirm delivery" onPress={() => deliver(cur.id)} loading={busy} disabled={otp.length !== 4} />
                 </>
               )}

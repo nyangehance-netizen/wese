@@ -1,5 +1,7 @@
 import { Image, Text, View } from 'react-native';
 import { useTheme } from '../theme';
+import { isDemo } from '../api';
+import { Pill } from './ui';
 
 const MARK = require('../../assets/mark.png');
 
@@ -23,7 +25,10 @@ export function TopBar({ subtitle, right }) {
   const c = useTheme();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: c.surface, borderBottomWidth: 1, borderColor: c.line }}>
-      <Brand subtitle={subtitle} />
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 1 }}>
+        <Brand subtitle={subtitle} />
+        {isDemo() ? <Pill text="Demo" tone="warn" /> : null}
+      </View>
       {right}
     </View>
   );

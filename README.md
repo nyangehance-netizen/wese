@@ -53,6 +53,8 @@ Run the automated tests (full order flow, refunds, permissions): `npm test`
 
 ## 2. Run the mobile app (iOS and Android)
 
+**Demo mode:** the sign-in screen has **Try the demo** (as a client or as a rider). It runs on sample data inside the app (`mobile/src/demo.js`) with a simulated station and rider, so it works with no server. Sign out to leave it.
+
 **To install it on your phone for preview, follow [INSTALL-ON-PHONE.md](INSTALL-ON-PHONE.md)** (Android APK, or Expo Go on iPhone).
 
 ```bash

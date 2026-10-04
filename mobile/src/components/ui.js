@@ -40,7 +40,7 @@ export function Button({ title, onPress, kind = 'primary', disabled, loading, st
 export function Field({ label, style, ...p }) {
   const c = useTheme();
   return (
-    <View style={[{ gap: 6, flex: 1 }, style]}>
+    <View style={[{ gap: 6 }, style]}>
       <Text style={{ color: c.muted, fontSize: 13, fontWeight: '600' }}>{label}</Text>
       <TextInput placeholderTextColor={c.muted} {...p}
         style={{ backgroundColor: c.sunk, borderColor: c.line, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 11, color: c.ink, fontSize: 16 }} />

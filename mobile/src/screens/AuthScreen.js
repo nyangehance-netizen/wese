@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, View, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { api, setToken, getApiUrl, setApiUrl, checkServer } from '../api';
+import { api, setToken, getApiUrl, setApiUrl, checkServer, enterDemo } from '../api';
 import { Card } from '../components/ui';
 import { Brand } from '../components/Brand';
 
@@ -38,7 +38,7 @@ function ServerSettings() {
   );
 }
 import { useTheme } from '../theme';
-import { H1, T, Button, Field, ErrorText } from '../components/ui';
+import { H1, H2, T, Button, Field, ErrorText, Row } from '../components/ui';
 
 export default function AuthScreen({ onSignedIn }) {
   const c = useTheme();
@@ -60,6 +60,22 @@ export default function AuthScreen({ onSignedIn }) {
     setBusy(false);
   }
 
+  async function tryDemo(role) {
+    setErr('');
+    try { onSignedIn(await enterDemo(role)); } catch (e) { setErr(e.message); }
+  }
+
+  const demoCard = (
+    <Card highlight>
+      <H2>Try the demo</H2>
+      <T muted small>No account or server needed. Sample stations and prices, and a simulated rider and station, so you can see a full delivery.</T>
+      <Row>
+        <Button title="As a client" onPress={() => tryDemo('client')} style={{ flex: 1 }} />
+        <Button title="As a rider" kind="brand" onPress={() => tryDemo('rider')} style={{ flex: 1 }} />
+      </Row>
+    </Card>
+  );
+
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -69,6 +85,8 @@ export default function AuthScreen({ onSignedIn }) {
             <H1>{reg ? 'Create your account' : 'Out of fuel? We bring it.'}</H1>
             <T muted>{reg ? 'Order fuel to wherever your vehicle stopped.' : 'Sign in to order fuel. Riders sign in here with the account their station made.'}</T>
           </View>
+          {!reg && demoCard}
+          {!reg && <T muted small style={{ textAlign: 'center' }}>or sign in to a Wese server</T>}
           {reg && <Field label="Full name" value={name} onChangeText={setName} autoComplete="name" />}
           <Field label="Phone number" value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="0754 123 456" autoComplete="tel" />
           <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry autoComplete={reg ? 'new-password' : 'current-password'} />

@@ -1,5 +1,7 @@
 # Install Wese on your phone for preview
 
+> **Quickest way to look around:** install the APK (Step 2A) and tap **As a client** or **As a rider** under **Try the demo** on the sign-in screen. Demo mode runs entirely on the phone with sample stations, prices and a simulated station and rider, so no server or account is needed. Sign out to leave demo mode.
+
 You need two things: the **server** running somewhere your phone can reach, and the **app** on your phone.
 
 ## Step 1 — Start the server on your computer

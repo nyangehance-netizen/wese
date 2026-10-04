@@ -102,33 +102,69 @@ function view(o) {
 const findOrder = (id) => S.orders.find((o) => o.id === Number(id)) || fail('Order not found.');
 const set = (o, status, extra = {}) => { Object.assign(o, extra, { status, updated_at: nowSql() }); };
 
+// ---------- simulated movement ----------
+// A street-like route: go along one axis, then the other, so the rider turns a corner.
+const streetPath = (a, b) => [a, [a[0], b[1]], b];
+/** Move along `points` over `ms`, calling apply([lat, lng]) once a second. Stops if alive() turns false. */
+function animate(points, ms, alive, apply, done) {
+  const legs = points.slice(1).map((p, i) => Math.hypot(p[0] - points[i][0], p[1] - points[i][1]));
+  const total = legs.reduce((a, b) => a + b, 0) || 1;
+  const at = (f) => {
+    let d = f * total;
+    for (let i = 0; i < legs.length; i++) {
+      if (d <= legs[i] || i === legs.length - 1) {
+        const t = legs[i] ? Math.min(1, d / legs[i]) : 1;
+        return [points[i][0] + (points[i + 1][0] - points[i][0]) * t, points[i][1] + (points[i + 1][1] - points[i][1]) * t];
+      }
+      d -= legs[i];
+    }
+    return points[points.length - 1];
+  };
+  const steps = Math.max(1, Math.round(ms / 1000));
+  for (let i = 1; i <= steps; i++) {
+    later(i * 1000, () => {
+      if (!alive()) return;
+      apply(at(i / steps));
+      if (i === steps && done) done();
+    });
+  }
+}
+
 // ---------- simulated station and rider for client orders ----------
 function simulateDelivery(o) {
-  const riderStart = stationAt(station(o.station_id));
+  const st = stationAt(station(o.station_id));
+  const you = [o.lat, o.lng];
   const rider = RIDERS.find((r) => r.vehicle === o.delivery_method);
-  const move = (f) => ({ rider_lat: riderStart[0] + (o.lat - riderStart[0]) * f, rider_lng: riderStart[1] + (o.lng - riderStart[1]) * f });
+  const put = ([lat, lng]) => Object.assign(o, { rider_lat: lat, rider_lng: lng });
   later(4000, () => {
     if (o.status !== 'placed') return;
     set(o, 'accepted');
     later(4000, () => {
       if (o.status !== 'accepted') return;
-      set(o, 'assigned', { rider_id: rider.id, ...move(0) });
-      later(6000, () => {
-        if (o.status !== 'assigned') return;
-        set(o, 'picked_up', move(0));
-        later(6000, () => {
+      // Rider starts a short ride away and heads to the station.
+      const start = [st[0] + 0.006, st[1] - 0.005];
+      set(o, 'assigned', { rider_id: rider.id, rider_lat: start[0], rider_lng: start[1] });
+      animate(streetPath(start, st), 8000, () => o.status === 'assigned', put, () => {
+        set(o, 'picked_up');
+        later(4000, () => {
           if (o.status !== 'picked_up') return;
-          set(o, 'on_the_way', move(0.4));
-          later(4000, () => o.status === 'on_the_way' && Object.assign(o, move(0.8)));
-          later(8000, () => {
-            if (o.status !== 'on_the_way') return;
-            set(o, 'arrived', move(1));
+          set(o, 'on_the_way');
+          animate(streetPath(st, you), 24000, () => o.status === 'on_the_way', put, () => {
+            set(o, 'arrived');
             later(10000, () => { if (o.status === 'arrived') set(o, 'delivered', { cancel_reason: null }); });
           });
         });
       });
     });
   });
+}
+
+// In the rider demo, move "you" (the rider) along the route after each step.
+function driveRider(o, to, ms) {
+  const run = {}; // unique per drive, so an older drive can never move the rider again
+  S.riderDriving = run;
+  animate(streetPath([S.rider.lat, S.rider.lng], to), ms, () => S.riderDriving === run,
+    ([lat, lng]) => Object.assign(S.rider, { lat, lng }), () => { if (S.riderDriving === run) S.riderDriving = null; });
 }
 
 function payOrder(o, ok) {
@@ -244,7 +280,8 @@ export async function demoApi(method, path, body = {}) {
   }
   if (route('POST', /^\/api\/rider\/status$/)) {
     if (body.online !== undefined) S.rider.online = body.online ? 1 : 0;
-    if (body.lat !== undefined) { S.rider.lat = body.lat; S.rider.lng = body.lng; nearHere(body.lat, body.lng); }
+    // While the demo is driving the rider along a route, ignore real GPS so the movement shows.
+    if (body.lat !== undefined && !S.riderDriving) { S.rider.lat = body.lat; S.rider.lng = body.lng; nearHere(body.lat, body.lng); }
     return { online: S.rider.online, lat: S.rider.lat, lng: S.rider.lng };
   }
   if (route('GET', /^\/api\/rider\/jobs$/)) {
@@ -260,12 +297,16 @@ export async function demoApi(method, path, body = {}) {
     if (riderCurrent()) fail('Finish your current job first.');
     if (o.status !== 'accepted') fail('Someone else already took this job.');
     set(o, 'assigned', { rider_id: S.rider.id });
+    driveRider(o, stationAt(station(o.station_id)), 8000);
     return view(o);
   }
   if ((m = route('POST', /^\/api\/orders\/(\d+)\/advance$/))) {
     const o = findOrder(m[1]);
     const next = { assigned: 'picked_up', picked_up: 'on_the_way', on_the_way: 'arrived' }[o.status] || fail("Enter the client's code to finish this delivery.");
     set(o, next);
+    if (next === 'picked_up') { S.riderDriving = null; [S.rider.lat, S.rider.lng] = stationAt(station(o.station_id)); }
+    if (next === 'on_the_way') driveRider(o, [o.lat, o.lng], 20000);
+    if (next === 'arrived') { S.riderDriving = null; Object.assign(S.rider, { lat: o.lat, lng: o.lng }); }
     return view(o);
   }
   if ((m = route('POST', /^\/api\/orders\/(\d+)\/deliver$/))) {

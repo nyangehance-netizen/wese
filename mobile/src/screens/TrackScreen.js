@@ -3,6 +3,7 @@ import { Linking, ScrollView, Text, View, RefreshControl } from 'react-native';
 import { api, tzs, phoneFmt } from '../api';
 import { useTheme } from '../theme';
 import { H1, H2, T, Card, Button, Pill, Line, Label, ErrorText, Row } from '../components/ui';
+import TrackMap from '../components/TrackMap';
 
 const STEPS = [
   ['placed', 'Order placed'], ['accepted', 'Station confirmed'], ['assigned', 'Rider assigned'],
@@ -25,7 +26,7 @@ export default function TrackScreen({ orderId, payment, onClose }) {
   const load = async () => { try { setO(await api('GET', `/api/orders/${orderId}`)); setErr(''); } catch (e) { setErr(e.message); } };
   useEffect(() => {
     load();
-    const t = setInterval(load, 4000); // live updates while this screen is open
+    const t = setInterval(load, 3000); // live updates while this screen is open
     return () => clearInterval(t);
   }, [orderId]);
 
@@ -41,6 +42,16 @@ export default function TrackScreen({ orderId, payment, onClose }) {
   const cancel = () => run(() => api('POST', `/api/orders/${o.id}/cancel`, {}));
 
   const riderKm = o.rider?.lat ? kmBetween(o.rider, o).toFixed(1) : null;
+  const toStation = o.status === 'assigned';
+  const riderFirst = o.rider?.name?.split(' ')[0];
+  const etaMin = riderKm ? Math.max(1, Math.round((Number(riderKm) / (o.delivery_method === 'tanker' ? 20 : 28)) * 60)) : null;
+  const showMap = ['placed', 'accepted', 'assigned', 'picked_up', 'on_the_way', 'arrived'].includes(o.status) && o.station?.lat != null;
+  const mapNote = o.status === 'placed' ? `Waiting for ${o.station.name} to accept.`
+    : !o.rider ? `${o.station.name} is finding a rider.`
+    : o.status === 'arrived' ? `${riderFirst} has arrived at your vehicle.`
+    : toStation ? `${riderFirst} is collecting your fuel at ${o.station.name}.`
+    : o.status === 'picked_up' ? `${riderFirst} has your fuel and is about to leave.`
+    : riderKm ? `${riderFirst} is ${riderKm} km away · about ${etaMin} min` : `${riderFirst} is on the way.`;
   const headline = o.status === 'awaiting_payment' ? 'Approve the payment' : o.status === 'rejected' ? 'The station declined this order'
     : o.status === 'cancelled' ? 'Order cancelled' : o.status === 'delivered' ? 'Fuel delivered' : o.status_label;
 
@@ -51,6 +62,19 @@ export default function TrackScreen({ orderId, payment, onClose }) {
         <Pill text={o.status_label} tone={o.status === 'delivered' ? 'ok' : ended ? 'bad' : o.status === 'awaiting_payment' ? 'warn' : 'brand'} />
       </Row>
       <H1>{headline}</H1>
+
+      {showMap && (
+        <Card style={{ padding: 12, gap: 10 }}>
+          <T bold>{mapNote}</T>
+          <TrackMap
+            station={{ lat: o.station.lat, lng: o.station.lng, label: o.station.name }}
+            dest={{ lat: o.lat, lng: o.lng, label: 'You' }}
+            rider={o.rider?.lat != null ? { lat: o.rider.lat, lng: o.rider.lng, label: riderKm && !toStation ? `${riderFirst} · ${riderKm} km` : riderFirst } : null}
+            target={toStation ? 'station' : 'client'}
+          />
+          <T muted small>The map updates every few seconds.</T>
+        </Card>
+      )}
 
       {o.status === 'awaiting_payment' && (
         <Card highlight>
@@ -100,10 +124,7 @@ export default function TrackScreen({ orderId, payment, onClose }) {
         <Card>
           <H2>{o.rider.name}</H2>
           <T muted>{o.rider.vehicle === 'tanker' ? 'Mini tanker' : 'Boda'} · {o.rider.plate}{riderKm ? ` · about ${riderKm} km away` : ''}</T>
-          <Row>
-            <Button title="Call rider" kind="brand" onPress={() => Linking.openURL(`tel:+${o.rider.phone}`)} style={{ flex: 1 }} />
-            {o.rider.lat ? <Button title="See on map" kind="plain" onPress={() => Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${o.rider.lat},${o.rider.lng}`)} style={{ flex: 1 }} /> : null}
-          </Row>
+          <Button title="Call rider" kind="brand" onPress={() => Linking.openURL(`tel:+${o.rider.phone}`)} />
           <T muted small>Rider's number: {phoneFmt(o.rider.phone)}</T>
         </Card>
       )}

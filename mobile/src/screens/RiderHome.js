@@ -6,6 +6,7 @@ import { api, tzs, phoneFmt } from '../api';
 import { useTheme } from '../theme';
 import { H1, H2, T, Card, Button, Field, Pill, Label, ErrorText, Row } from '../components/ui';
 import { TopBar } from '../components/Brand';
+import TrackMap from '../components/TrackMap';
 
 const NEXT = {
   assigned: ['Collected the fuel', 'Head to the station and load the fuel.'],
@@ -29,7 +30,7 @@ export default function RiderHome({ user, onSignOut }) {
       setMe(r); setJobs(j);
     } catch (e) { setErr(e.message); }
   };
-  useEffect(() => { load(); const t = setInterval(load, 5000); return () => clearInterval(t); }, []);
+  useEffect(() => { load(); const t = setInterval(load, 3000); return () => clearInterval(t); }, []);
 
   // Share position while online so clients can see the rider approach.
   useEffect(() => {
@@ -40,7 +41,7 @@ export default function RiderHome({ user, onSignOut }) {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted' || cancelled) return;
       watcher.current = await Location.watchPositionAsync(
-        { accuracy: Location.Accuracy.High, timeInterval: 20000, distanceInterval: 50 },
+        { accuracy: Location.Accuracy.High, timeInterval: 10000, distanceInterval: 25 },
         (p) => api('POST', '/api/rider/status', { lat: p.coords.latitude, lng: p.coords.longitude }).catch(() => {}),
       );
     })();
@@ -83,6 +84,13 @@ export default function RiderHome({ user, onSignOut }) {
             <Card highlight>
               <Row style={{ justifyContent: 'space-between' }}><Label>Current job {cur.code}</Label><Pill text={cur.status_label} tone="brand" /></Row>
               <H2>{cur.litres} L {cur.product_name}</H2>
+              <TrackMap
+                station={{ lat: me.station.lat, lng: me.station.lng, label: me.station.name }}
+                dest={{ lat: cur.lat, lng: cur.lng, label: cur.client_name }}
+                rider={me.lat != null ? { lat: me.lat, lng: me.lng, label: 'You' } : null}
+                target={cur.status === 'assigned' ? 'station' : 'client'}
+                height={230}
+              />
               {cur.status === 'assigned' ? (
                 <>
                   <T>Pick up at <T bold>{me.station.name}</T></T>

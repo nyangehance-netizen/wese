@@ -55,6 +55,8 @@ Run the automated tests (full order flow, refunds, permissions): `npm test`
 
 **Demo mode:** the sign-in screen has **Try the demo** (as a client or as a rider). It runs on sample data inside the app (`mobile/src/demo.js`) with a simulated station and rider, so it works with no server. Sign out to leave it.
 
+**Live map:** clients see the station, their vehicle and the rider moving on a map while an order is on the way; riders see their route to the station and then to the client. It uses OpenStreetMap through Leaflet (bundled in `mobile/src/components/leafletAssets.js`), so no Google Maps key is needed. For a large launch, switch the tile address in `TrackMap.js` to a paid tile provider, since the free OpenStreetMap servers are meant for light use.
+
 **To install it on your phone for preview, follow [INSTALL-ON-PHONE.md](INSTALL-ON-PHONE.md)** (Android APK, or Expo Go on iPhone).
 
 ```bash

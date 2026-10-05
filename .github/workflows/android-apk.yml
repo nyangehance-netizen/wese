@@ -45,7 +45,12 @@ jobs:
           restore-keys: gradle-${{ runner.os }}-
 
       - name: Install packages
-        run: npm run setup
+        run: |
+          set -o pipefail
+          if ! npm run setup 2>&1 | tee ../setup.log; then
+            echo "::error title=Install failed::$(grep -v '^npm http' ../setup.log | tail -25 | sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g')"
+            exit 1
+          fi
 
       - name: Add Firebase config for push notifications (optional)
         env:
@@ -65,7 +70,12 @@ jobs:
         env:
           EXPO_PUBLIC_API_URL: ${{ vars.API_URL || 'http://192.168.1.20:4000' }}
           EAS_PROJECT_ID: ${{ vars.EAS_PROJECT_ID }}
-        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a,armeabi-v7a
+        run: |
+          set -o pipefail
+          if ! ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a,armeabi-v7a 2>&1 | tee ../../gradle.log; then
+            echo "::error title=Build failed::$(grep -E 'error|FAILED|What went wrong' -A3 ../../gradle.log | tail -30 | sed ':a;N;$!ba;s/%/%25/g;s/\n/%0A/g')"
+            exit 1
+          fi
 
       - name: Name the APK
         run: |

@@ -124,11 +124,19 @@ CREATE TABLE IF NOT EXISTS payments (
 );
 `;
 
+// Columns added after the first release; added in place on existing databases.
+function migrate(db) {
+  const has = (table, col) => db.prepare(`PRAGMA table_info(${table})`).all().some((c) => c.name === col);
+  if (!has('users', 'push_token')) db.exec('ALTER TABLE users ADD COLUMN push_token TEXT');
+  if (!has('orders', 'notified_status')) db.exec('ALTER TABLE orders ADD COLUMN notified_status TEXT');
+}
+
 export function openDb(file = config.dbFile) {
   if (file !== ':memory:') mkdirSync(path.dirname(file), { recursive: true });
   const db = new DatabaseSync(file);
   db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;');
   db.exec(SCHEMA);
+  migrate(db);
   return db;
 }
 

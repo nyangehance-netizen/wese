@@ -5,3 +5,4 @@ mobile/.expo/
 mobile/dist/
 *.log
 .DS_Store
+mobile/google-services.json

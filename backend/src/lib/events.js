@@ -1,6 +1,7 @@
 // Live updates over Server-Sent Events. Each signed-in user can hold open streams;
 // we push small "something changed" messages and the app re-fetches what it needs.
 import { all } from '../db.js';
+import { notifyOrder } from './push.js';
 
 const streams = new Map(); // userId -> Set<res>
 
@@ -28,6 +29,7 @@ export function pushTo(userIds, event, data) {
 
 /** Tell everyone involved in an order that it changed. */
 export function orderChanged(order) {
+  notifyOrder(order);
   const staff = all("SELECT id FROM users WHERE role = 'station' AND station_id = ?", order.station_id).map((u) => u.id);
   const riders = all('SELECT user_id AS id FROM riders WHERE station_id = ? AND active = 1', order.station_id).map((u) => u.id);
   pushTo([order.client_id, ...staff, ...riders, order.rider_id].filter(Boolean), 'order', {

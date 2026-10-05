@@ -1,6 +1,6 @@
 // Wese station dashboard: one-file app, talks to the Wese API on the same server.
 const API = window.WESE_API || '';
-const S = { token: localStorage.getItem('wese_token') || '', user: null, station: null, orders: [], history: [], stats: null, tab: 'orders', admin: [], adminTab: 'pending', live: false };
+const S = { token: localStorage.getItem('wese_token') || '', user: null, station: null, orders: [], history: [], stats: null, tab: 'orders', admin: [], adminTab: 'pending', adminSection: 'stations', adminOrders: [], adminQuery: '', adminStatus: 'open', live: false };
 
 const $ = (s) => document.querySelector(s);
 const app = $('#app');
@@ -55,7 +55,12 @@ async function loadStation() {
   Object.assign(S, { station, orders, stats });
   if (S.tab === 'history') S.history = await api('GET', '/api/station/orders?scope=history');
 }
-async function loadAdmin() { S.admin = await api('GET', '/api/admin/stations?status=' + S.adminTab); }
+async function loadAdmin() {
+  if (S.adminSection === 'orders') {
+    S.adminOrders = await api('GET', `/api/admin/orders?status=${encodeURIComponent(S.adminStatus)}&q=${encodeURIComponent(S.adminQuery)}`);
+  } else S.admin = await api('GET', '/api/admin/stations?status=' + S.adminTab);
+}
+const reload = () => (S.user?.role === 'admin' ? loadAdmin() : loadStation());
 
 function connectLive() {
   if (S.es || !S.token) return;
@@ -64,6 +69,7 @@ function connectLive() {
   S.es.onerror = () => { S.live = false; renderBar(); };
   S.es.addEventListener('order', async (e) => {
     const d = JSON.parse(e.data);
+    if (S.user?.role === 'admin') { if (S.adminSection === 'orders') { await loadAdmin().catch(() => {}); render(); } return; }
     if (S.user?.role !== 'station' || !S.station) return;
     const known = S.orders.find((o) => o.id === d.id);
     await loadStation().catch(() => {});
@@ -150,9 +156,18 @@ const statusPill = (o) => ({
 }[o.status] || `<span class="pill brand">${esc(o.status_label)}</span>`);
 const payPill = (o) => ({ paid: '<span class="pill ok">Paid</span>', pending: '<span class="pill warn">Transfer to confirm</span>', refunded: '<span class="pill">Refunded</span>', unpaid: '<span class="pill">Unpaid</span>', failed: '<span class="pill bad">Payment failed</span>' }[o.payment_status]);
 
-function orderCard(o) {
+function lockBox(o) {
+  return `<div class="lockbox"><p><b>Delivery code locked</b> after ${o.otp_attempts} wrong tries. Call the client on <b class="num">${esc(phoneFmt(o.contact_phone))}</b> and confirm the fuel is in the tank, then record how you confirmed it.</p>
+    <div class="btn-row"><input id="lock-${o.id}" placeholder="e.g. Client confirmed by phone at 14:20" aria-label="How delivery was confirmed"><button class="btn primary" data-act="completeLocked" data-id="${o.id}">Mark delivered</button></div></div>`;
+}
+
+function orderCard(o, admin = false) {
   let actions = '';
-  if (o.status === 'placed') {
+  if (admin) {
+    const open = !['delivered', 'cancelled', 'rejected'].includes(o.status);
+    if (open) actions += `<button class="btn danger" data-act="adminAsk" data-kind="cancel" data-id="${o.id}">Cancel${o.payment_status === 'paid' ? ' &amp; refund' : ''}</button>`;
+    if (!open && o.payment_status === 'paid') actions += `<button class="btn" data-act="adminAsk" data-kind="refund" data-id="${o.id}">Refund</button>`;
+  } else if (o.status === 'placed') {
     actions = o.payment_status === 'pending'
       ? `<button class="btn brand" data-act="confirmTransfer" data-id="${o.id}">Confirm transfer received</button>`
       : `<button class="btn primary" data-act="accept" data-id="${o.id}">Accept &amp; send to riders</button>`;
@@ -161,11 +176,13 @@ function orderCard(o) {
     actions = `<button class="btn danger" data-act="cancelOrder" data-id="${o.id}">Cancel &amp; refund</button>`;
   }
   const maps = `https://www.google.com/maps?q=${o.lat},${o.lng}`;
-  return `<article class="order ${o.status === 'placed' ? 'attn' : ''}">
-    <div class="order-top"><strong class="num">${esc(o.code)} · ${o.litres} L ${esc(o.product_name)}</strong><span class="btn-row">${payPill(o)}${statusPill(o)}</span></div>
+  return `<article class="order ${o.status === 'placed' || o.code_locked ? 'attn' : ''}">
+    <div class="order-top"><strong class="num">${esc(o.code)} · ${o.litres} L ${esc(o.product_name)}</strong><span class="btn-row">${o.code_locked ? '<span class="pill bad">Code locked</span>' : ''}${payPill(o)}${statusPill(o)}</span></div>
+    ${admin ? `<div class="meta"><span>Station <b>${esc(o.station.name)}</b></span><span>Client account <span class="num">${esc(phoneFmt(o.client_phone))}</span></span><span class="num">${o.created_at ? new Date(o.created_at.replace(' ', 'T') + 'Z').toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' }) : ''}</span></div>` : ''}
     <div class="meta"><span><b>${esc(o.client_name)}</b> <span class="num">${esc(phoneFmt(o.contact_phone))}</span></span><span>${esc(o.vehicle_type)} <b class="num">${esc(o.plate)}</b></span><span class="num">${time(o.created_at)}</span></div>
     <div class="meta"><span>${esc(o.landmark || o.address || 'Pinned location')} · <a href="${maps}" target="_blank" rel="noopener">map</a></span><span class="num">${o.distance_km} km</span><span>${VEH[o.delivery_method]}</span><span>${esc(o.payment_label)}</span></div>
     <div class="meta"><span>Fuel <b class="num">${tzs(o.fuel_cost)}</b></span><span>Client pays <b class="num">${tzs(o.total)}</b></span>${o.rider ? `<span>Rider <b>${esc(o.rider.name)}</b> <span class="num">${esc(o.rider.plate)}</span></span>` : o.status === 'accepted' ? '<span>Waiting for a rider to take it</span>' : ''}${o.cancel_reason ? `<span>Reason: ${esc(o.cancel_reason)}</span>` : ''}</div>
+    ${o.code_locked ? lockBox(o) : ''}
     ${actions ? `<div class="btn-row">${actions}</div>` : ''}</article>`;
 }
 
@@ -242,13 +259,26 @@ function stationView() {
 }
 
 function adminView() {
-  return `<div class="panel-head" style="margin-bottom:12px"><h1>Station approvals</h1>
+  const nav = `<nav class="tabs" role="tablist">${[['stations', 'Station approvals'], ['orders', 'Orders']].map(([k, l]) => `<button role="tab" data-act="adminSection" data-tab="${k}" aria-selected="${S.adminSection === k}">${l}</button>`).join('')}</nav>`;
+  if (S.adminSection === 'orders') return nav + adminOrdersView();
+  return nav + `<div class="panel-head" style="margin-bottom:12px"><h1>Station approvals</h1>
     <div class="btn-row">${['pending', 'approved', 'suspended'].map((k) => `<button class="btn ${S.adminTab === k ? 'brand' : ''}" data-act="adminTab" data-tab="${k}">${k[0].toUpperCase() + k.slice(1)}</button>`).join('')}</div></div>
     <div class="orders">${S.admin.length ? S.admin.map((s) => `<article class="order">
       <div class="order-top"><strong>${esc(s.name)}</strong><span class="pill">${s.status}</span></div>
       <div class="meta"><span>Licence <b>${esc(s.license_no)}</b></span><span>${esc(s.address)}</span><span>Owner <b>${esc(s.owner_name)}</b> <span class="num">${phoneFmt(s.owner_phone)}</span></span><a href="https://www.google.com/maps?q=${s.lat},${s.lng}" target="_blank" rel="noopener">map</a></div>
       <div class="btn-row">${s.status !== 'approved' ? `<button class="btn primary" data-act="setStatus" data-id="${s.id}" data-status="approved">Approve</button>` : ''}${s.status !== 'suspended' ? `<button class="btn danger" data-act="setStatus" data-id="${s.id}" data-status="suspended">Suspend</button>` : ''}</div>
     </article>`).join('') : '<div class="empty">Nothing here.</div>'}</div>`;
+}
+
+function adminOrdersView() {
+  const statuses = [['open', 'Open'], ['', 'All'], ['delivered', 'Delivered'], ['cancelled', 'Cancelled'], ['rejected', 'Declined']];
+  return `<form id="adminSearch" class="panel" style="margin-bottom:16px">
+      <div class="fields">
+        <div class="field" style="grid-column:span 2"><label for="aq">Find an order</label><input id="aq" value="${esc(S.adminQuery)}" placeholder="Order code (WS-000012), client phone, plate or name"></div>
+        <div class="field"><label for="ast">Status</label><select id="ast">${statuses.map(([v, l]) => `<option value="${v}" ${S.adminStatus === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+        <div class="field" style="justify-content:flex-end"><button class="btn brand" type="submit">Search</button></div>
+      </div></form>
+    <div class="orders">${S.adminOrders.length ? S.adminOrders.map((o) => orderCard(o, true)).join('') : '<div class="empty">No orders match. Try another code, phone number or status.</div>'}</div>`;
 }
 
 // ---------- events ----------
@@ -287,10 +317,32 @@ document.addEventListener('click', async (e) => {
       if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = 'Tap again to remove'; return; }
       await act(async () => (S.station = await api('DELETE', `/api/station/products/${id}`)), 'Product removed'); return render();
     case 'adminTab': S.adminTab = b.dataset.tab; await act(loadAdmin); return render();
+    case 'adminSection': S.adminSection = b.dataset.tab; await act(loadAdmin); return render();
+    case 'completeLocked': {
+      const note = $(`#lock-${id}`).value.trim();
+      if (note.length < 5) return toast('Write how the client confirmed delivery first.');
+      b.disabled = true;
+      await act(() => api('POST', `/api/orders/${id}/complete-locked`, { note }), 'Marked delivered'); break;
+    }
+    case 'adminAsk': {
+      const card = b.closest('.order');
+      if (card.querySelector('.reason')) return;
+      const kind = b.dataset.kind;
+      card.insertAdjacentHTML('beforeend', `<div class="btn-row reason"><input aria-label="Reason" placeholder="Reason, e.g. client complaint #123"><button class="btn danger" data-act="adminGo" data-kind="${kind}" data-id="${id}">${kind === 'refund' ? 'Refund now' : 'Cancel now'}</button></div>`);
+      card.querySelector('.reason input').focus();
+      return;
+    }
+    case 'adminGo': {
+      const reason = b.previousElementSibling.value.trim();
+      if (reason.length < 3) return toast('Give a reason; it is saved on the order.');
+      const kind = b.dataset.kind;
+      b.disabled = true;
+      await act(() => api('POST', `/api/admin/orders/${id}/${kind}`, { reason }), kind === 'refund' ? 'Refunded' : 'Order cancelled'); break;
+    }
     case 'setStatus': await act(() => api('POST', `/api/admin/stations/${id}/status`, { status: b.dataset.status }), 'Station updated'); await act(loadAdmin); return render();
     default: return;
   }
-  await act(loadStation); render();
+  await act(reload); render();
 });
 
 document.addEventListener('change', async (e) => {
@@ -331,6 +383,10 @@ document.addEventListener('submit', async (e) => {
       });
       S.user = await api('GET', '/api/me');
       return render();
+    }
+    if (f.id === 'adminSearch') {
+      S.adminQuery = $('#aq').value.trim(); S.adminStatus = $('#ast').value;
+      await loadAdmin(); return render();
     }
     if (f.id === 'prodForm') {
       S.station = await api('POST', '/api/station/products', { name: $('#pName').value, fuel_type: $('#pType').value, price_per_litre: Number($('#pPrice').value), stock_litres: Number($('#pStock').value) });

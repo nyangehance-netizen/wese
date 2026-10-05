@@ -20,13 +20,44 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0E5A50"
       },
-      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"]
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "POST_NOTIFICATIONS"
+      ]
     },
     "plugins": [
-      ["expo-splash-screen", { "image": "./assets/splash-icon.png", "imageWidth": 180, "resizeMode": "contain", "backgroundColor": "#0E5A50" }],
-      ["expo-location", { "locationWhenInUsePermission": "Wese uses your location so the fuel rider can find your vehicle." }],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 180,
+          "resizeMode": "contain",
+          "backgroundColor": "#0E5A50"
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#0E5A50"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Wese uses your location so the fuel rider can find your vehicle."
+        }
+      ],
       "expo-secure-store",
-      ["expo-build-properties", { "android": { "usesCleartextTraffic": true } }]
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
     ]
   }
 }

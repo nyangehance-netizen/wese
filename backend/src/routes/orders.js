@@ -49,6 +49,14 @@ export function orderView(o, viewer) {
     }
   }
   else v.contact_phone = o.contact_phone;
+  if (viewer.role === 'station' || viewer.role === 'admin') {
+    v.otp_attempts = o.otp_attempts;
+    v.code_locked = o.status === 'arrived' && o.otp_attempts >= config.otpMaxAttempts;
+  }
+  if (viewer.role === 'admin') {
+    v.client_phone = one('SELECT phone FROM users WHERE id = ?', o.client_id)?.phone;
+    v.payments = all('SELECT reference, provider, method, amount, status, created_at FROM payments WHERE order_id = ? ORDER BY id', o.id);
+  }
   if (viewer.role === 'rider') {
     v.rider_earning = o.rider_earning;
     // Riders see trip details, not the client's money breakdown.
@@ -242,14 +250,72 @@ export default (r) => {
     return done(tx(() => move(o, [o.status], next, user.id)), user);
   });
 
+  // ---------- Station or admin: finish an order whose delivery code locked ----------
+  r.post('/api/orders/:id/complete-locked', requireUser('station', 'admin'), ({ user, params, body }) => {
+    const o = loadFor(user, params.id);
+    if (o.status !== 'arrived') throw conflict('Only an order whose rider has arrived can be finished this way.');
+    if (o.otp_attempts < config.otpMaxAttempts) throw conflict("The rider can still enter the client's code.");
+    const note = str(body.note, 'How delivery was confirmed', { min: 5, max: 200 });
+    const who = user.role === 'admin' ? 'Wese admin' : 'station';
+    return done(tx(() => move(o, ['arrived'], 'delivered', user.id, `Finished by ${who} after the code locked: ${note}`)), user);
+  });
+
+  // ---------- Admin: find any order, cancel it, refund it ----------
+  r.get('/api/admin/orders', requireUser('admin'), ({ user, query }) => {
+    const where = [], args = [];
+    const q = String(query.q || '').trim();
+    if (q) {
+      const digits = q.replace(/\D/g, '');
+      const ph = /^0[67]\d+$/.test(digits) ? '255' + digits.slice(1) : digits;
+      const like = `%${q.toUpperCase()}%`;
+      where.push('(UPPER(o.code) LIKE ? OR UPPER(o.plate) LIKE ? OR UPPER(u.name) LIKE ?' + (ph.length >= 4 ? ' OR o.contact_phone LIKE ? OR u.phone LIKE ?' : '') + ')');
+      args.push(like, like, like);
+      if (ph.length >= 4) args.push(`%${ph}%`, `%${ph}%`);
+    }
+    if (query.status === 'open') where.push("o.status IN ('awaiting_payment','placed','accepted','assigned','picked_up','on_the_way','arrived')");
+    else if (query.status) { where.push('o.status = ?'); args.push(oneOf(query.status, 'Status', Object.keys(STATUS_LABELS))); }
+    const rows = all(`SELECT o.* FROM orders o JOIN users u ON u.id = o.client_id ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY o.id DESC LIMIT 100`, ...args);
+    return rows.map((o) => orderView(o, user));
+  });
+
+  r.post('/api/admin/orders/:id/cancel', requireUser('admin'), async ({ user, params, body }) => {
+    const o = loadFor(user, params.id);
+    const reason = str(body.reason, 'Reason', { min: 3, max: 200 });
+    const open = ['awaiting_payment', 'placed', 'accepted', 'assigned', 'picked_up', 'on_the_way', 'arrived'];
+    const out = tx(() => {
+      const n = move(o, open, 'cancelled', user.id, `Cancelled by Wese admin: ${reason}`, { cancel_reason: reason });
+      if (['accepted', 'assigned'].includes(o.status)) restock(n); // fuel not collected yet
+      return n;
+    });
+    if (out.payment_status === 'paid') await refundOrder(out);
+    else run("UPDATE payments SET status = 'failed', updated_at = datetime('now') WHERE order_id = ? AND status = 'pending'", o.id);
+    return done(one('SELECT * FROM orders WHERE id = ?', o.id), user);
+  });
+
+  r.post('/api/admin/orders/:id/refund', requireUser('admin'), async ({ user, params, body }) => {
+    const o = loadFor(user, params.id);
+    const reason = str(body.reason, 'Reason', { min: 3, max: 200 });
+    if (o.payment_status !== 'paid') throw conflict('There is no completed payment on this order to refund.');
+    await refundOrder(o);
+    run('INSERT INTO order_events (order_id, status, actor_id, note) VALUES (?,?,?,?)', o.id, o.status, user.id, `Refunded by Wese admin: ${reason}`);
+    return done(one('SELECT * FROM orders WHERE id = ?', o.id), user);
+  });
+
   r.post('/api/orders/:id/deliver', requireUser('rider'), ({ user, params, body }) => {
     const o = loadFor(user, params.id);
     if (o.rider_id !== user.id) throw forbidden();
     if (o.status !== 'arrived') throw conflict('Mark yourself as arrived first.');
-    if (o.otp_attempts >= config.otpMaxAttempts) throw new HttpError(429, 'Too many wrong codes. Ask the station to help finish this order.');
+    const locked = 'Too many wrong codes. Call the client to confirm the fuel is in, then ask your station to finish the order from its dashboard.';
+    if (o.otp_attempts >= config.otpMaxAttempts) throw new HttpError(429, locked);
     if (String(body.otp ?? '').trim() !== o.otp) {
       run('UPDATE orders SET otp_attempts = otp_attempts + 1 WHERE id = ?', o.id);
-      throw bad(`That code doesn't match. ${config.otpMaxAttempts - o.otp_attempts - 1} tries left.`);
+      const left = config.otpMaxAttempts - o.otp_attempts - 1;
+      if (left <= 0) {
+        run("INSERT INTO order_events (order_id, status, actor_id, note) VALUES (?, 'arrived', ?, 'Delivery code locked after too many wrong tries')", o.id, user.id);
+        orderChanged(one('SELECT * FROM orders WHERE id = ?', o.id)); // alerts the station dashboard
+        throw new HttpError(429, locked);
+      }
+      throw bad(`That code doesn't match. ${left} ${left === 1 ? 'try' : 'tries'} left.`);
     }
     return done(tx(() => move(o, ['arrived'], 'delivered', user.id, 'Client confirmed with code')), user);
   });

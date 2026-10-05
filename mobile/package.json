@@ -4,7 +4,7 @@
   "private": true,
   "main": "index.js",
   "scripts": {
-    "setup": "npm install && npx expo install react react-native expo-build-properties expo-splash-screen expo-location expo-secure-store expo-status-bar react-native-safe-area-context react-native-webview",
+    "setup": "npm install && npx expo install react react-native expo-build-properties expo-splash-screen expo-location expo-secure-store expo-status-bar react-native-safe-area-context react-native-webview expo-notifications expo-constants",
     "start": "expo start",
     "build:apk": "eas build -p android --profile preview",
     "build:android": "eas build -p android --profile production",

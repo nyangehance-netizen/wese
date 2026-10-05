@@ -99,3 +99,6 @@ td input{padding:6px 8px;max-width:130px}
 .err{color:var(--bad);font-size:.9rem;min-height:1.2em}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;z-index:30;max-width:calc(100% - 32px)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.lockbox{border:1px solid var(--bad);background:var(--bad-soft);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.lockbox input{flex:1 1 240px}
+.reason input{flex:1 1 220px;width:auto}

@@ -2,6 +2,8 @@
 // It answers the same API paths as the real backend, so every screen works unchanged.
 // The fuel station and the other side of each delivery are simulated on timers.
 
+import { clientMessage } from './messages';
+
 const PAY = {
   mpesa: { label: 'M-Pesa', kind: 'mobile' }, mixx: { label: 'Mixx by Yas', kind: 'mobile' },
   airtel: { label: 'Airtel Money', kind: 'mobile' }, halopesa: { label: 'HaloPesa', kind: 'mobile' },
@@ -20,11 +22,11 @@ const MAX_KM = 20;
 const HOME = [-6.765, 39.248]; // Mikocheni: sample stations are placed around here
 const STATIONS = [
   { id: 1, name: 'Mwenge Energies', address: 'Sam Nujoma Rd, Mwenge', phone: '255713000001', at: [-6.768, 39.226], boda: 1, tanker: 1,
-    products: { petrol: [11, 'Petrol', 2915], diesel: [12, 'Diesel', 2832] }, pay: ['mpesa', 'mixx', 'airtel', 'card', 'bank'], bank: 'CRDB 0150 3381 2200' },
+    products: { petrol: [11, 'Petrol', 3796], diesel: [12, 'Diesel', 3877] }, pay: ['mpesa', 'mixx', 'airtel', 'card', 'bank'], bank: 'CRDB 0150 3381 2200' },
   { id: 2, name: 'Bahari Fuel Point', address: 'Chole Rd, Msasani', phone: '255713000002', at: [-6.758, 39.27], boda: 1, tanker: 0,
-    products: { petrol: [21, 'Petrol', 2940], diesel: [22, 'Diesel', 2850] }, pay: ['mpesa', 'airtel', 'card'] },
+    products: { petrol: [21, 'Petrol', 3790], diesel: [22, 'Diesel', 3870] }, pay: ['mpesa', 'airtel', 'card'] },
   { id: 3, name: 'Ubungo Petro Hub', address: 'Morogoro Rd, Ubungo', phone: '255713000003', at: [-6.79, 39.205], boda: 1, tanker: 1,
-    products: { petrol: [31, 'Petrol', 2899], diesel: [32, 'Diesel', 2815] }, pay: ['mpesa', 'mixx', 'halopesa', 'bank'], bank: 'NMB 2210 4477 901' },
+    products: { petrol: [31, 'Petrol', 3780], diesel: [32, 'Diesel', 3860] }, pay: ['mpesa', 'mixx', 'halopesa', 'bank'], bank: 'NMB 2210 4477 901' },
 ];
 const RIDERS = [
   { id: 101, name: 'Juma Mrisho', phone: '255754000011', vehicle: 'boda', plate: 'MC 712 CVB' },
@@ -100,7 +102,18 @@ function view(o) {
   return v;
 }
 const findOrder = (id) => S.orders.find((o) => o.id === Number(id)) || fail('Order not found.');
-const set = (o, status, extra = {}) => { Object.assign(o, extra, { status, updated_at: nowSql() }); };
+// Demo alerts: the app plugs in a function that shows a phone notification.
+let notifier = null;
+export const setDemoNotifier = (fn) => { notifier = fn; };
+const set = (o, status, extra = {}) => {
+  const changed = o.status !== status;
+  Object.assign(o, extra, { status, updated_at: nowSql() });
+  if (changed && notifier && S.role === 'client' && o.client_id === S.client.id) {
+    const r = o.rider_id ? RIDERS.find((x) => x.id === o.rider_id) : null;
+    const m = clientMessage(o, r?.name);
+    if (m) Promise.resolve(notifier(m[0], m[1])).catch(() => {});
+  }
+};
 
 // ---------- simulated movement ----------
 // A street-like route: go along one axis, then the other, so the rider turns a corner.
@@ -190,6 +203,10 @@ function makeJob() {
     payment_method: 'mpesa', payment_status: 'paid', status: 'accepted', otp: String(1000 + Math.floor(Math.random() * 9000)),
     rider_id: null, cancel_reason: null, created_at: nowSql(), updated_at: nowSql(),
   });
+  // The first two jobs are waiting when the demo opens; alert for the ones that arrive later.
+  if (notifier && S.role === 'rider' && S.jobN > 2) {
+    Promise.resolve(notifier(`New job: ${litres} L ${pname}`, `${landmark} \u00b7 ${km} km \u00b7 you earn ${p.riderEarning.toLocaleString('en-US')} TZS`)).catch(() => {});
+  }
 }
 const riderCurrent = () => S.orders.find((o) => o.rider_id === S.rider.id && ['assigned', 'picked_up', 'on_the_way', 'arrived'].includes(o.status));
 

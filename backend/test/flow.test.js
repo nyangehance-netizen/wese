@@ -123,3 +123,70 @@ test('rejects bad input clearly', async () => {
   assert.match(r.data.error, /Name|phone/i);
   assert.equal((await api('GET', '/api/me')).status, 401);
 });
+
+test('locked delivery code: station finishes the order; admin finds, cancels and refunds orders', async () => {
+  const T = (await ok('POST', '/api/auth/login', { phone: '0713000001', password: 'secret1' })).token;
+  const R = (await ok('POST', '/api/auth/login', { phone: '0754000011', password: 'rider123' })).token;
+  const A = (await ok('POST', '/api/auth/login', { phone: '0700000000', password: 'admin123' })).token;
+  const C = (await ok('POST', '/api/auth/register', { name: 'Halima Abdallah', phone: '0713440201', password: 'halima1' })).token;
+  const st = await ok('GET', '/api/station', null, T);
+  const p = st.products[0];
+  const mk = async () => {
+    const r = await ok('POST', '/api/orders', { station_id: st.id, product_id: p.id, litres: 10, delivery_method: 'boda', lat: -6.778, lng: 39.219, plate: 'T 119 DSR', payment_method: 'mpesa' }, C);
+    await ok('POST', `/api/payments/test/${r.payment.reference}/approve`, {}, C);
+    return r.order;
+  };
+
+  // Lock the code with 5 wrong tries
+  const o = await mk();
+  await ok('POST', `/api/orders/${o.id}/accept`, {}, T);
+  await ok('POST', `/api/orders/${o.id}/take`, {}, R);
+  for (let i = 0; i < 3; i++) await ok('POST', `/api/orders/${o.id}/advance`, {}, R);
+  assert.equal((await api('POST', `/api/orders/${o.id}/complete-locked`, { note: 'client said ok' }, T)).status, 409, 'not locked yet');
+  for (let i = 0; i < 4; i++) assert.equal((await api('POST', `/api/orders/${o.id}/deliver`, { otp: '0000' }, R)).status, 400);
+  assert.equal((await api('POST', `/api/orders/${o.id}/deliver`, { otp: '0000' }, R)).status, 429, '5th wrong code locks');
+  assert.equal((await api('POST', `/api/orders/${o.id}/deliver`, { otp: o.otp }, R)).status, 429, 'stays locked even with the right code');
+  const seen = (await ok('GET', '/api/station/orders', null, T)).find((x) => x.id === o.id);
+  assert.equal(seen.code_locked, true);
+  assert.equal((await api('POST', `/api/orders/${o.id}/complete-locked`, { note: '' }, T)).status, 400, 'needs a note');
+  const fin = await ok('POST', `/api/orders/${o.id}/complete-locked`, { note: 'Client confirmed by phone at 14:20' }, T);
+  assert.equal(fin.status, 'delivered');
+  assert.match(fin.events.at(-1).note, /Finished by station/);
+
+  // Admin search by code and by local phone number
+  assert.equal((await ok('GET', `/api/admin/orders?q=${o.code}`, null, A))[0].id, o.id);
+  assert.ok((await ok('GET', '/api/admin/orders?q=0713%20440%20201', null, A)).some((x) => x.id === o.id));
+  assert.equal((await api('GET', '/api/admin/orders', null, T)).status, 403, 'stations cannot use admin search');
+
+  // Admin refunds the delivered order (complaint)
+  assert.equal((await api('POST', `/api/admin/orders/${o.id}/refund`, { reason: '' }, A)).status, 400);
+  const ref = await ok('POST', `/api/admin/orders/${o.id}/refund`, { reason: 'Complaint: short fill' }, A);
+  assert.equal(ref.payment_status, 'refunded');
+  assert.equal((await api('POST', `/api/admin/orders/${o.id}/refund`, { reason: 'again' }, A)).status, 409, 'no double refund');
+
+  // Admin cancels an accepted order: refund + stock back
+  const o2 = await mk();
+  await ok('POST', `/api/orders/${o2.id}/accept`, {}, T);
+  const before = (await ok('GET', '/api/station', null, T)).products[0].stock_litres;
+  const c2 = await ok('POST', `/api/admin/orders/${o2.id}/cancel`, { reason: 'Station reported pump fault' }, A);
+  assert.equal(c2.status, 'cancelled');
+  assert.equal(c2.payment_status, 'refunded');
+  assert.equal((await ok('GET', '/api/station', null, T)).products[0].stock_litres, before + 10);
+  assert.ok((await ok('GET', '/api/admin/orders?status=open', null, A)).every((x) => !['delivered', 'cancelled', 'rejected'].includes(x.status)));
+});
+
+test('push tokens are stored and order messages are prepared', async () => {
+  const { pushToUsers, clientMessage } = await import('../src/lib/push.js');
+  const { one: get } = await import('../src/db.js');
+  const reg = await ok('POST', '/api/auth/register', { name: 'Push Tester', phone: '0716000001', password: 'push123' });
+  assert.equal((await api('PUT', '/api/me/push-token', { token: 'not-a-token' }, reg.token)).status, 400);
+  await ok('PUT', '/api/me/push-token', { token: 'ExponentPushToken[abcdefghijklmnop]' }, reg.token);
+  const msgs = await pushToUsers([reg.user.id], 'Hello', 'World');
+  assert.equal(msgs.length, 1);
+  assert.equal(msgs[0].to, 'ExponentPushToken[abcdefghijklmnop]');
+  await ok('PUT', '/api/me/push-token', { token: null }, reg.token);
+  assert.equal(get('SELECT push_token FROM users WHERE id = ?', reg.user.id).push_token, null);
+  assert.match(clientMessage({ status: 'arrived', code: 'WS-1', total: 1 }, 'Juma Mrisho')[0], /Juma has arrived/);
+  // Every order that reached a status was marked as notified once
+  assert.equal(get("SELECT COUNT(*) AS n FROM orders WHERE status != notified_status").n, 0);
+});

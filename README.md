@@ -81,6 +81,25 @@ eas submit -p android   /   eas submit -p ios
 
 Change `bundleIdentifier` / `package` in `mobile/app.json` (`tz.co.wese.app`) to your own before the first build.
 
+## Push notifications
+
+Clients get an alert at each step of their order; riders get "New job" alerts; both work with the app closed. In **demo mode** the phone shows these alerts itself, with no setup.
+
+For real accounts, alerts go through Expo's free push service. One-time setup:
+
+1. Create a free account at expo.dev, then in `mobile/` run `npx eas-cli init` and copy the **project ID** it creates.
+2. Create a Firebase project at console.firebase.google.com, add an Android app with package `tz.co.wese.app`, and download **google-services.json**.
+3. Upload the Firebase service-account key to Expo: `npx eas-cli credentials` → Android → Google Service Account Key for push (FCM V1).
+4. In the GitHub repository settings → Secrets and variables → Actions: add variable **EAS_PROJECT_ID** (the project ID) and secret **GOOGLE_SERVICES_JSON** (paste the whole file). The next APK build includes push.
+5. iPhone: push is set up when you first build with `eas build -p ios` (needs the Apple Developer Program).
+
+The server sends alerts on its own once phones register; nothing to configure there. Set `PUSH_DISABLED=1` to switch sending off.
+
+## Support tools
+
+- **Locked delivery code:** after 5 wrong codes the order shows "Code locked" on the station dashboard. The station calls the client, types how delivery was confirmed, and taps **Mark delivered**. The note is saved on the order.
+- **Admin → Orders:** search any order by code, client phone, plate or name; **Cancel** an open order (refunds a paid one and returns stock if the fuel was not collected); **Refund** a finished paid order, for example after a complaint. Every action records the reason.
+
 ## 3. Payments
 
 Payments run in **test mode**: no money moves. Mobile money and card payments approve automatically after 5 seconds (`TEST_AUTO_APPROVE_MS`), or the client can tap **Approve / Decline** in the app.
@@ -116,5 +135,8 @@ Nothing else in the app changes. Each station's Lipa numbers and accounts are st
 | `GET /api/rider` · `/rider/jobs` · `POST /api/rider/status` | rider | Profile, jobs, online + location |
 | `POST /api/orders/:id/take`, `/advance`, `/deliver` | rider | Delivery steps and code check |
 | `GET /api/admin/stations` · `POST /api/admin/stations/:id/status` | admin | Approve or suspend stations |
+| `GET /api/admin/orders?q=&status=` · `POST /api/admin/orders/:id/cancel`, `/refund` | admin | Find, cancel and refund orders |
+| `POST /api/orders/:id/complete-locked` | station, admin | Finish an order whose delivery code locked |
+| `PUT /api/me/push-token` | client, rider | Register the phone for push alerts |
 | `POST /api/payments/callback/:provider` | provider | Payment webhooks |
 | `GET /api/events?token=` | all | Live updates (Server-Sent Events) |

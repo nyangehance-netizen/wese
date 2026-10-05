@@ -13,15 +13,15 @@ const user = (name, phone, role, stationId = null) => {
 
 const stations = [
   { name: 'Mwenge Energies', owner: ['Rehema Mushi', '255713000001'], phone: '255713000001', license: 'EWURA/RT/2025/0412', address: 'Sam Nujoma Rd, Mwenge', lat: -6.768, lng: 39.226, boda: 1, tanker: 1,
-    products: [['Petrol', 'petrol', 2915, 8200], ['Diesel', 'diesel', 2832, 11400]],
+    products: [['Petrol', 'petrol', 3796, 8200], ['Diesel', 'diesel', 3877, 11400]],
     pay: { mpesa: 'Lipa 551204', mixx: 'Lipa 551204', airtel: 'Lipa 551204', card: 'Card checkout', bank: 'CRDB 0150 3381 2200' },
     riders: [['Juma Mrisho', '255754000011', 'boda', 'MC 712 CVB'], ['Neema Kweka', '255754000012', 'tanker', 'T 905 EAZ']] },
   { name: 'Bahari Fuel Point', owner: ['Ali Hassan', '255713000002'], phone: '255713000002', license: 'EWURA/RT/2024/1188', address: 'Chole Rd, Msasani', lat: -6.758, lng: 39.270, boda: 1, tanker: 0,
-    products: [['Petrol', 'petrol', 2940, 5100], ['Diesel', 'diesel', 2850, 3900]],
+    products: [['Petrol', 'petrol', 3790, 5100], ['Diesel', 'diesel', 3870, 3900]],
     pay: { mpesa: 'Lipa 820017', airtel: 'Lipa 820017', card: 'Card checkout' },
     riders: [['Baraka Shija', '255754000013', 'boda', 'MC 330 DXA']] },
   { name: 'Ubungo Petro Hub', owner: ['Grace Mollel', '255713000003'], phone: '255713000003', license: 'EWURA/RT/2023/0907', address: 'Morogoro Rd, Ubungo', lat: -6.790, lng: 39.205, boda: 1, tanker: 1,
-    products: [['Petrol', 'petrol', 2899, 2400], ['Diesel', 'diesel', 2815, 16000]],
+    products: [['Petrol', 'petrol', 3780, 2400], ['Diesel', 'diesel', 3860, 16000]],
     pay: { mpesa: 'Lipa 330981', mixx: 'Lipa 330981', halopesa: 'Lipa 330981', bank: 'NMB 2210 4477 901' },
     riders: [['Said Omari', '255754000014', 'tanker', 'T 218 DHN'], ['Musa Kileo', '255754000015', 'boda', 'MC 118 EBC']] },
 ];

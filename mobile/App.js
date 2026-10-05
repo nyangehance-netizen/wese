@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { api, getToken, setToken, setOnUnauthorized } from './src/api';
+import { api, getToken, setToken, setOnUnauthorized, isDemo } from './src/api';
+import { registerForPush, unregisterPush } from './src/push';
 import { useTheme } from './src/theme';
 import AuthScreen from './src/screens/AuthScreen';
 import ClientApp from './src/screens/ClientApp';
@@ -22,7 +23,12 @@ export default function App() {
     })();
   }, []);
 
-  const signOut = async () => { await setToken(null); setUser(null); };
+  // Turn on alerts once someone is signed in (client and rider accounts only).
+  useEffect(() => {
+    if (user && (user.role === 'client' || user.role === 'rider')) registerForPush(isDemo());
+  }, [user?.id, user?.role]);
+
+  const signOut = async () => { await unregisterPush(isDemo()); await setToken(null); setUser(null); };
 
   let screen;
   if (booting) screen = <View style={{ flex: 1, justifyContent: 'center' }}><ActivityIndicator color={c.brand} size="large" /></View>;

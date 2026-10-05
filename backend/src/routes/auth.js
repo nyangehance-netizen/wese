@@ -1,6 +1,7 @@
 import { one, run } from '../db.js';
 import { hashPassword, verifyPassword, signToken, requireUser, checkLoginRate, clearLoginRate } from '../lib/auth.js';
 import { HttpError, bad, conflict, str, phone, oneOf } from '../lib/http.js';
+import { isPushToken } from '../lib/push.js';
 
 export function profile(userId) {
   const user = one('SELECT id, name, phone, role, station_id, created_at FROM users WHERE id = ?', userId);
@@ -33,6 +34,15 @@ export default (r) => {
   });
 
   r.get('/api/me', requireUser(), ({ user }) => profile(user.id));
+
+  // The phone app sends its Expo push token after sign-in; null clears it (sign-out).
+  r.put('/api/me/push-token', requireUser(), ({ user, body }) => {
+    const token = body.token ?? null;
+    if (token !== null && !isPushToken(token)) throw bad('That is not an Expo push token.');
+    if (token) run('UPDATE users SET push_token = NULL WHERE push_token = ? AND id != ?', token, user.id); // one phone, one account
+    run('UPDATE users SET push_token = ? WHERE id = ?', token, user.id);
+    return { ok: true };
+  });
 
   r.patch('/api/me', requireUser(), ({ user, body }) => {
     if (body.name !== undefined) run('UPDATE users SET name = ? WHERE id = ?', str(body.name, 'Name', { min: 2, max: 80 }), user.id);
